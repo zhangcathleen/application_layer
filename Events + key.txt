@@ -1,0 +1,148 @@
+02470f9e772cee58beb1157348e69bdc
+
+1. My motion sensor 
+Motion detected: 10:52, 10:53, 10:55
+
+2. Ewelink Outlet
+12:45 Off from switch (Simple toggling)
+12:46 On from switch
+12:46:49 Off from switch
+12:47 On via app
+12:48 Off via app
+12:49 On via app
+12:50 Off via app
+12:56 Powered off manually (No mains-power)
+12:57 Powered on manually
+12:58 On via app
+12:58:30 Powered off manually
+12:59 Powered on manually
+12:59:30 Powered off manually
+1:05 Powered on manually
+
+3. Smarthings Plug
+1:12 Off via app
+1:13 On via app
+1:15 Off via app
+1:16 Powered off manually (No mains-power)
+1:17 Powered on manually
+
+4. Centralite Plug
+1:37 Off via app
+1:38 On via app
+1:39 Off via app
+1:42 On via app
+1:42:30 Powered off manually (No mains-power)
+1:43 Powered on manually
+1:44 Off via app
+1:45 On via app
+
+5. Lab Motion sensor
+Motion detected: 1:50, 1:51, 1:52
+
+6. Visonic Door sensor
+2:14 Closed
+2:15 Opened
+2:16 Closed
+2:17 Opened
+2:18 Closed
+
+7. Multipurpose Door sensor lab
+2:23 Closed
+2:24 Opened
+2:25 Closed
+2:26 Opened
+
+8. Yale Lock
+2:31 Locked via app
+2:32 Unlocked via app
+2:33 Locked via app
+2:33:30 Unlocked via app
+2:34 Locked via keypad touch
+2:35 Unlocked via keypad pin
+2:36 Manually locked
+2:37 Manually unlocked
+
+9. Schlage Lock
+5:31 Unlocked via app
+5:32 Locked via app
+5:32:30 Unlocked via app
+5:33 Locked via app
+5:33:30 Unlocked via app
+5:34 Locked via keypad touch
+5:35 Unlocked via keypad pin
+5:35:30 Locked via keypad touch
+5:36 Unlocked via keypad pin
+5:37 Manually locked
+5:38 Manually unlocked
+
+10. Philips Colored Bulb
+6:59 Off via app
+7.00 On via app
+7:01 Off via app
+7:02 On via app
+7:02:30 Powered off manually (No mains-power)
+7:03 Powered on manually
+7:03:30 Powered off manually (No mains-power)
+7:04:30 Powered on manually
+
+11. SmartThings Bulb(ser2) 
+7:20 Off via app
+7:21:05 On via app
+7:21:30 Off via app
+7:22 On via app
+7:22:30 Powered off manually (No mains-power)
+7:24 On via app (Read attributes coz its actually powered off)
+7:25 Powered on manually
+7:27 Powered off manually (No mains-power)
+7:27:30 Powered on manually
+
+12. Sengled white
+7:38:30 Off via app
+7:39 On via app
+7:40 Off via app
+7:40:30 On via app
+7:41 Off via app
+7:41:30 On via app
+7:42 Off via app
+7:42:30 On via app
+7:43 Powered off manually (No mains-power)
+7:43:30 Powered on manually
+7:44 Powered off manually (No mains-power)
+7:46 Powered on manually
+
+13. Sengled Colored(ser1)
+7:54:30 Off via app
+7:55 On via app
+7:55:30 Off via app
+7:56 On via app
+7:56:30 Off via app
+7:57 On via app
+7:57:38 Powered off manually (No mains-power)
+7:58 Powered on manually
+7:59 Powered off manually (No mains-power)
+8:00 Powered on manually
+8:02 Color Changed
+8:03 Color Changed
+
+14. Sylvania Colored Bulb(ser?)
+7:08 Off via app
+7.09 On via app
+7:09:30 Off via app
+7:10 On via app
+7:10:30 Powered off manually (No mains-power)
+7:11 Powered on manually
+7:12 Powered off manually (No mains-power)
+7:13:30 Powered on manually
+7:15:15 Color Changed
+7:16 Color Changed
+
+15. Philips White Bulb
+8:51:30 Off via app
+8:52 On via app
+8:52:30:30 Off via app
+8:53 On via app
+8:53:40 Powered off manually (No mains-power)
+8:54 Powered on manually
+
+
+
