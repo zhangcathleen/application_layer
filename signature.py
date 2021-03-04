@@ -66,9 +66,7 @@ def parse():
   # current time stamp of the signature
   time_stamp = -1
 
-  # keeps track of the 
-
-  # tracks possible device numbers + which step 
+  # tracks possible device numbers + which step [signatures]
   # [<index in list of signature[device]>, device numbers ...]
   possible = {}
 
@@ -81,10 +79,11 @@ def parse():
     5 : [[True,'0x00000000','54','17',-1], ['0x00000000',True,'45','8',20]],
     6 : [
       [True,'0x00000000','54','17',-1], [True,'0x00000000','53','16',-1], ['0x00000000',True,'45','8',-1], ['0x00000000',True,'45','8',-1], 
-      ['0x00000000',True,'50','13',-1], ['0x00000000',True,'50','13',-1], ['0x00000000',True,'45','8',-1], ['0x00000000',True,'45','8',-1]],
+      ['0x00000000',True,'50','13',-1], ['0x00000000',True,'50','13',-1], [True, '0x00000000','45','8',-1], [True, '0x00000000','45','8',-1]],
     7 : [
       [True, '0x00000000', '69', '32', -1], ['0x00000000', True, '45', '8', -1], [True, '0x00000000', '54', '17', -1], ['0x00000000', True, '45', '8', -1],
-      [True, '0x00000000', '65', '28', -1], ['0x00000000', True, '45', '8', -1], [True, '0x00000000', '65', '28', -1], ['0x00000000', True, '45', '8', -1]
+      [True, '0x00000000', '65', '28', -1], ['0x00000000', True, '45', '8', -1], [True, '0x00000000', '65', '28', -1], ['0x00000000', True, '45', '8', -1],
+      [True, '0x00000000', '65', '28', -1], ['0x00000000', True, '45', '8', -1], [True, '0x00000000', '65', '28', -1], ['0x00000000', True, '45', '8', -1],
     ]
   }
 
@@ -125,11 +124,11 @@ def parse():
             else:
 
               # if packets are within 2 seconds - should be same burst
-              if ti - time_stamp < 2:
+              if ti - time_stamp < 5:
                 times[time_stamp].append(it)
 
               # if packets aren't in 2 seconds - probably a different burst
-              elif ti - time_stamp >= 2:
+              elif ti - time_stamp >= 5:
                 time_stamp = ti
                 times[time_stamp] = [it]
           else:
@@ -142,29 +141,52 @@ def parse():
 
 
 
-    # checking the burst with the database/dictionary of signatures
-    # correlating the first time
-    for t in times: # loops through the recorded bursts
-      for dv in signatures: # loops through the dictionary of signatures
-        i = 0
-        while i < len(times[t]): # correlates the indiv steps inside of the signatures
-          t_sig = times[t] # signatures recorded at time of burst
-          s_sig = signatures[dv] # signatures of device numbers
-          
-          t_item = t_sig[i] # t_item is the [src, dst, len, time] data of ~times~
-          s_item = s_sig[i] # s_item is the [src, dst, len, repeat] data of ~signatures~
+    # checking [times] bursts with the [signatures] database/dictionary
+    # adding the signatures [signatures] that match to possible
+    # for t in times: # loops through the [times] bursts
+    for dv in signatures: # loops through the [signatures] dictionary
 
-          # checking the device id
-          if s_item[0] and device == t_item[0]:
-            # checking the dst 
-            if s_item[1] == t_item[1] and s_item[2] == t_item[2] and s_item[3] == t_item[3]:
-              possible[dv] = steps
+      add = True # if all signatures + times match, keep signature?
+      t_sig = list(times.values())[0] # signatures recorded at [t] time of [times] burst
+      s_sig = signatures[dv] # signatures of [dv] device numbers [signatures]
 
-          i =+ 1
+      if len(s_sig) != len(t_sig):
+        add = False
+        continue
+
+
+
+      i = -1 # index for while loop below
+
+      while i + 1 < len(t_sig): # correlates the indiv steps inside of the signatures
+
+        i = i + 1
+        
+
+        t_item = t_sig[i] # t_item is the [src, dst, len, time] data of [times]
+        s_item = s_sig[i] # s_item is the [src, dst, len, repeat] data of [signatures]
+
+
+        if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
+          if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])) and s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the dst, frame len, data len
+            continue
+          else:
+            add = False
+            break
+        else:
+          add = False
+          break
+        
+      
+      if add:
+        possible[dv] = s_sig
 
     for x in possible:
       print(f'{x} : {possible[x]}')
 
+
+    for t in times:
+      print(f'{t} ({len(times[t])}): {times[t]}')
 
 
 
@@ -182,9 +204,6 @@ def parse():
     # except KeyboardInterrupt:
     #   print('\n  interrupted!~')
 
-
-    for t in times:
-      print(f'{t} : {times[t]}')
 
     # try:
     #   for pk in shark_cap:
