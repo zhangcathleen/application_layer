@@ -8,6 +8,7 @@
 import sys
 import pyshark
 import time
+from datetime import datetime
 
 
 # 02470f9e772cee58beb1157348e69bdc
@@ -59,12 +60,17 @@ def parse():
   # the nwk.src
   device = None
 
+  # times which events have happened
+  events = []
+
   # times in which bursts have been detected
   # <time at beginning of this burst> : [[src, dst, frame.len, data.len, <time of this packet>], ...]
   times = dict()
 
-  # current time stamp of the signature
+  # current time stamp of the burst
   time_stamp = -1
+
+  prev_time = -1
 
   # tracks possible device numbers + which step [signatures]
   # [<index in list of signature[device]>, device numbers ...]
@@ -75,15 +81,15 @@ def parse():
   # where time = seconds until repeat signature from step 1
   #              -1 if it doesn't repeat
   signatures = {
-    1 : [[True,'0x00000000','54','17',-1], ['0x00000000',True,'45','8',-1], ['0x00000000',True,'50','13',-1], [True,'0x00000000','45','8',20]],
-    5 : [[True,'0x00000000','54','17',-1], ['0x00000000',True,'45','8',20]],
+    1 : [[True,'0x00000000','54','17'], ['0x00000000',True,'45','8'], ['0x00000000',True,'50','13'], [True,'0x00000000','45','8']],
+    5 : [[True,'0x00000000','54','17'], ['0x00000000',True,'45','8']],
     6 : [
-      [True,'0x00000000','54','17',-1], [True,'0x00000000','53','16',-1], ['0x00000000',True,'45','8',-1], ['0x00000000',True,'45','8',-1], 
-      ['0x00000000',True,'50','13',-1], ['0x00000000',True,'50','13',-1], [True, '0x00000000','45','8',-1], [True, '0x00000000','45','8',-1]],
+      [True,'0x00000000','54','17'], [True,'0x00000000','53','16'], ['0x00000000',True,'45','8'], ['0x00000000',True,'45','8'], 
+      ['0x00000000',True,'50','13'], ['0x00000000',True,'50','13'], [True, '0x00000000','45','8'], [True, '0x00000000','45','8']],
     7 : [
-      [True, '0x00000000', '69', '32', -1], ['0x00000000', True, '45', '8', -1], [True, '0x00000000', '54', '17', -1], ['0x00000000', True, '45', '8', -1],
-      [True, '0x00000000', '65', '28', -1], ['0x00000000', True, '45', '8', -1], [True, '0x00000000', '65', '28', -1], ['0x00000000', True, '45', '8', -1],
-      [True, '0x00000000', '65', '28', -1], ['0x00000000', True, '45', '8', -1], [True, '0x00000000', '65', '28', -1], ['0x00000000', True, '45', '8', -1],
+      [True, '0x00000000', '69', '32'], ['0x00000000', True, '45', '8'], [True, '0x00000000', '54', '17'], ['0x00000000', True, '45', '8'],
+      [True, '0x00000000', '65', '28'], ['0x00000000', True, '45', '8'], [True, '0x00000000', '65', '28'], ['0x00000000', True, '45', '8'],
+      [True, '0x00000000', '65', '28'], ['0x00000000', True, '45', '8'], [True, '0x00000000', '65', '28'], ['0x00000000', True, '45', '8'],
     ]
   }
 
@@ -115,22 +121,27 @@ def parse():
             ti = float(frame.time_epoch)
             it = [zbee.src, zbee.dst, frame.len, zbee.data_len, ti]
 
+            
+
             # setting the time stamp to check for bursts at the beginning of the file
             if time_stamp < 0:
               time_stamp = ti
               times[time_stamp] = [it]
+              prev_time = ti
 
             # checking for the burst
             else:
 
               # if packets are within 2 seconds - should be same burst
-              if ti - time_stamp < 5:
+              if ti - prev_time < 2:
                 times[time_stamp].append(it)
+                prev_time = ti
 
               # if packets aren't in 2 seconds - probably a different burst
-              elif ti - time_stamp >= 5:
+              elif ti - prev_time >= 2:
                 time_stamp = ti
                 times[time_stamp] = [it]
+                prev_time = ti
           else:
             continue
     
@@ -180,13 +191,133 @@ def parse():
       
       if add:
         possible[dv] = s_sig
+    
 
+    # outputting the times where the events happened
+    # based on [times] bursts and correlated signatures [possible]
+    if len(possible) == 1: # can just output times, TODO: what if len of possible is longer than 1? probably go back and redo it?
+      s_sig = list(possible.values())[0] # signature [possible]
+      s_dev = list(possible.keys())[0] # device number [possible]
+
+      s_end = len(s_sig) - 1 # len of signatures [possible] : index wise
+      # s_last = s_sig[s_end] # last step in signature of s_sig [possible]
+
+      
+
+      # hardcoding for device 1 and 5 (with the repeat)
+      if s_dev == 1 or s_dev == 5:
+
+        t_time = "" # the time of the first step in the signature
+
+        repeated = False # have we checked if it's been repeated yet
+        
+        # if s_last[len(s_last) - 1] > 0: # the signature repeats
+
+        for t in times: # what was recorded from the previous loop
+          t_sig = times[t] # current signature in [times]
+          i = 0
+
+          if not repeated: # sets the t_time if this hasn't been repeated yet
+            t_time = t
+          
+          while i < s_end: # going through the first signature steps
+
+            t_item = t_sig[i]
+            s_item = s_sig[i]
+            
+            if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
+              if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])): # checking the dst
+                if s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the frame len, data len
+                  pass # continue on to the next one
+                else:
+                  
+                  i = -3
+                  break
+              else:
+                i = -2
+                break
+            else:
+              # print(f'{i} : t {t_item} : s {s_item}')
+              i = -1
+              break
+
+
+            i = i + 1
+          
+          if i == s_end: # checking the last step + dealing w consequences of repeat
+            if repeated: # already repeated - can add to the final [events]
+              if t - t_time < 20 and t - t_time > 10:
+                if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
+                  if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])): # checking the dst
+                    if s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the frame len, data len
+                      events.append(t_time)
+
+              repeated = False
+            
+            else: # has not repeated yet - set repeated to True so next time it works
+              if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
+                if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])): # checking the dst
+                  if s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the frame len, data len
+                    repeated = True
+          
+          elif i < 0: # something didn't match up; i corresponds to above
+            print(f"nope i : {i}")
+            continue
+
+      # for everything else (no repeat)
+      else:
+        for t in times: # what was recorded from the previous loop
+          t_sig = times[t] # current signature in [times]
+          i = 0
+          
+          while i < s_end: # going through the first signature steps
+
+            t_item = t_sig[i]
+            s_item = s_sig[i]
+            
+            if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
+              if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])): # checking the dst
+                if s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the frame len, data len
+                  pass # continue on to the next one
+                else:
+                  i = -3
+                  break
+              else:
+                i = -2
+                break
+            else:
+              # print(f'{i} : t {t_item} : s {s_item}')
+              i = -1
+              break
+
+
+            i = i + 1
+          
+          if i == s_end: # checking the last step + adding the event time
+            if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
+              if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])): # checking the dst
+                if s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the frame len, data len
+                  events.append(t)
+
+          elif i < 0: # something didn't match up; i corresponds to above
+            # print(f"nope i : {i}")
+            continue
+           
+
+    print('\n\n ~ possible:')
     for x in possible:
-      print(f'{x} : {possible[x]}')
+      print(f' possible {x} : {possible[x]}')
 
 
+    print('\n\n ~ times:')
     for t in times:
-      print(f'{t} ({len(times[t])}): {times[t]}')
+      print(datetime.fromtimestamp(t))
+      print(f' times {t} ({len(times[t])}): {times[t]}\n')
+    
+    print(f'\n~ {len(events)} times events happened - {sys.argv[1]}:')
+    for x in events:
+      print(datetime.fromtimestamp(x))
+      # print(time.strftime('%Y/%m/%d %H:%M:%S.%f', time.localtime(x)))
 
 
 
