@@ -264,6 +264,49 @@ def parse():
             print(f"nope i : {i}")
             continue
 
+      # hardcoding for device 7 + implement levenshtein device
+      elif s_dev == 7:
+        add = False
+        for t in times: # levenshtein each t in the burst [times]
+          t_sig = times[t] # current signature in [times]
+          t_len = len(t_sig) # len of current signature [times]
+          s_len = len(s_sig) # len of [possible] signature
+
+          # not the len = 2 of the device 7 signatures 10 seconds later
+          if t_len > 2:
+            l_matrix = list() # matrix is [possible] column and [times] rows
+
+            i = 0
+            # initializing the matrix
+            while i < 1 + t_len:
+              j = 0
+              j_matrix = list()
+              while j < 1 + s_len:
+
+                if i == 0:
+                  j_matrix.append(j)
+
+                elif j == 0:
+                  j_matrix.append(i)
+
+                else:
+                  j_matrix.append(0)
+                
+                j = j + 1
+              l_matrix.append(j_matrix)
+              i = i + 1
+            
+            # for l in l_matrix:
+            #   print(l)
+
+            add = True
+
+          
+          else: # for the repeat one (2), to make sure that it checks out
+            if add:
+              # print('yay add')
+              add = False
+
       # for everything else (no repeat)
       else:
         for t in times: # what was recorded from the previous loop
@@ -304,20 +347,20 @@ def parse():
             continue
            
 
-    print('\n\n ~ possible:')
-    for x in possible:
-      print(f' possible {x} : {possible[x]}')
+    # print('\n\n ~ possible:')
+    # for x in possible:
+    #   print(f' possible {x} : {possible[x]}')
 
 
-    print('\n\n ~ times:')
-    for t in times:
-      print(datetime.fromtimestamp(t))
-      print(f' times {t} ({len(times[t])}): {times[t]}\n')
+    # print('\n\n ~ times:')
+    # for t in times:
+    #   print(datetime.fromtimestamp(t))
+    #   print(f' times {t} ({len(times[t])}): {times[t]}\n')
     
-    print(f'\n~ {len(events)} times events happened - {sys.argv[1]}:')
-    for x in events:
-      print(datetime.fromtimestamp(x))
-      # print(time.strftime('%Y/%m/%d %H:%M:%S.%f', time.localtime(x)))
+    # print(f'\n~ {len(events)} times events happened - {sys.argv[1]}:')
+    # for x in events:
+    #   print(datetime.fromtimestamp(x))
+    #   # print(time.strftime('%Y/%m/%d %H:%M:%S.%f', time.localtime(x)))
 
 
 
