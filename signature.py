@@ -6,6 +6,7 @@
 
 
 from sys import argv
+from sys import exit
 import pyshark
 import time
 from datetime import datetime
@@ -179,7 +180,140 @@ def find( device, times, signatures ):
   return possible
 
 
-# identiy ---------------------------------------------------------------------
+# checking ------------------------------------------------
+
+# checking the signature of one item/step: [times] vs [possible]
+# t_item : t_sig[i] step in burst [times]
+# s_item : s_sig[i] step in signature [possible]
+# <num> : returns a number, if negative, something went wrong, positive good
+def checking( t_item, s_item):
+  if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
+    if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])): # checking the dst
+      if s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the frame len, data len
+         return True # continue on to the next one
+      else:
+        return -3
+    else:
+      return -2
+  else:
+    # print(f'{i} : t {t_item} : s {s_item}')
+    return -1
+
+
+# m_init -----------------------------------------------------------
+
+# initializing a blank matrix for levenshtein
+# t_len : len of the current burst [times]
+# s_len : len of [possible] signature
+# <l_matrix> : returns an initialized blank matrix
+#             columns are current burst [times]
+#             rows are signature [possible]
+#             [ [0, burst 1, 2....]
+#               [pos 1, 0, 0...]
+#               [pos 2, 0, 0...]
+#               [...]
+#             ]
+# bursts going across
+# possible going down
+def m_init( t_len, s_len ):
+
+  l_matrix = list() # matrix is [possible] column and [times] rows
+
+  i = 0
+  # initializing the matrix
+  while i < 1 + t_len:
+    j = 0
+    j_matrix = list()
+    while j < 1 + s_len:
+
+      if i == 0:
+        j_matrix.append(j)
+
+      elif j == 0:
+        j_matrix.append(i)
+
+      else:
+        j_matrix.append(-1)
+      
+      j = j + 1
+    l_matrix.append(j_matrix)
+    i = i + 1
+  
+  # for l in l_matrix:
+  #   print(l)
+  # print(l_matrix)
+
+  return l_matrix
+
+
+# lev ----------------------------------------
+
+# the levenshtein algorithm
+# https://en.wikipedia.org/wiki/Levenshtein_distance
+# r : the current row
+# c : the current column
+# m : what the current matrix is
+# t_sig : bursts - going across
+# s_sig : possible - going down
+def lev( r, c, m, t_sig, s_sig ):
+  # print(f'lev {r} {c}')
+
+  i = m[r][c-1] # left
+  j = m[r-1][c] # above
+  print(f'lev left {i} above {j}')
+
+  ab = 1 # if ai = bj, default False
+
+  if i == -1 and j == -1:
+    exit("rip")
+  
+
+  if min(i, j) == 0:
+    
+    return max(i, j)
+  
+  else:
+    j = lev( i - 1, j, m, t_sig, s_sig) + 1
+    k = lev( i, j - 1, m, t_sig, s_sig) + 1
+    if checking( t_sig[c], s_sig[r] ):
+      ab = 0
+    l = lev( i - 1, j - 1, m, t_sig, s_sig) + ab
+    
+    return min(j, k , l)
+
+# l_fill ------------------------------------------------------
+
+# implementing algorithm / fillouting matrix using levenshtein algo
+# l_matrix : blank matrix that was created in m_init
+def l_fill(l_matrix, t_sig, s_sig):
+
+  # rows (going down) = possible
+  r = 0
+  
+  while r < len(l_matrix):
+    l_row = l_matrix[r] # levenshtein row of the matrix
+    # print(l_row)
+    # columns (going across) = burst
+    c = 0
+    while c < len(l_row):
+
+      # if empty, val = -1: so if val < 0, need to run the algo
+      if l_row[c] < 0:
+        print(f'{l_row[c]} < 0 : row {r} col {c}')
+        l_matrix[r][c] = lev(r, c, l_matrix, t_sig, s_sig)
+      
+
+      c = c + 1
+    
+    r = r + 1
+  
+  # print(l_matrix)
+      
+
+
+
+# identify ---------------------------------------------------------------------
+
 # device : the main device for this pcap
 # times : the identified bursts in the pcap
 # possible : the identified possible signatures ** should be len() = 1 **
@@ -209,7 +343,7 @@ def identify( device, times, possible ):
       # if s_last[len(s_last) - 1] > 0: # the signature repeats
 
       for t in times: # what was recorded from the previous loop
-        t_sig = times[t] # current signature in [times]
+        t_sig = times[t] # current burst in [times]
         i = 0
 
         if not repeated: # sets the t_time if this hasn't been repeated yet
@@ -219,83 +353,47 @@ def identify( device, times, possible ):
 
           t_item = t_sig[i]
           s_item = s_sig[i]
-          
-          if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
-            if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])): # checking the dst
-              if s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the frame len, data len
-                pass # continue on to the next one
-              else:
-                i = -3
-                break
-            else:
-              i = -2
-              break
-          else:
-            # print(f'{i} : t {t_item} : s {s_item}')
-            i = -1
-            break
 
+          if not (c := checking( t_item, s_item ) ):
+            i = c
+            break
 
           i = i + 1
         
         if i == s_end: # checking the last step + dealing w consequences of repeat
           if repeated: # already repeated - can add to the final [events]
             if t - t_time < 20 and t - t_time > 10:
-              if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
-                if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])): # checking the dst
-                  if s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the frame len, data len
-                    events.append(t_time)
-
-            repeated = False
+              if checking( t_item, s_item ):
+                events.append(t_time)
+                repeated = False
           
           else: # has not repeated yet - set repeated to True so next time it works
-            if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
-              if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])): # checking the dst
-                if s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the frame len, data len
-                  repeated = True
+            if checking( t_item, s_item ):
+              repeated = True
         
-        elif i < 0: # something didn't match up; i corresponds to above
-          # print(f"nope i : {i}")
-          continue
+        # elif i < 0: # something didn't match up; i corresponds to above
+        #   # print(f"nope i : {i}")
+        #   continue
 
     # hardcoding for device 7 + implement levenshtein device
     elif s_dev == 7:
       add = False
       for t in times: # levenshtein each t in the burst [times]
         t_sig = times[t] # current signature in [times]
-        t_len = len(t_sig) # len of current signature [times]
+        t_len = len(t_sig) # len of current burst [times]
         s_len = len(s_sig) # len of [possible] signature
 
         # not the len = 2 of the device 7 signatures 10 seconds later
         if t_len > 2:
-          l_matrix = list() # matrix is [possible] column and [times] rows
-
-          i = 0
-          # initializing the matrix
-          while i < 1 + t_len:
-            j = 0
-            j_matrix = list()
-            while j < 1 + s_len:
-
-              if i == 0:
-                j_matrix.append(j)
-
-              elif j == 0:
-                j_matrix.append(i)
-
-              else:
-                j_matrix.append(0)
-              
-              j = j + 1
-            l_matrix.append(j_matrix)
-            i = i + 1
           
-          # for l in l_matrix:
-          #   print(l)
+          l_matrix = m_init( t_len, s_len )
+          l_fill(l_matrix, t_sig, s_sig)
+
 
           add = True
 
           '''
+          what to do:
           1 - initialize matrix [x]
           2 - keep track of what's deleted + what's added
           3 - implement the algo - recursion : make it in different
@@ -318,33 +416,19 @@ def identify( device, times, possible ):
           t_item = t_sig[i]
           s_item = s_sig[i]
           
-          if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
-            if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])): # checking the dst
-              if s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the frame len, data len
-                pass # continue on to the next one
-              else:
-                i = -3
-                break
-            else:
-              i = -2
-              break
-          else:
-            # print(f'{i} : t {t_item} : s {s_item}')
-            i = -1
+          if not (c := checking( t_item, s_item ) ):
+            i = c
             break
-
 
           i = i + 1
         
         if i == s_end: # checking the last step + adding the event time
-          if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
-            if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])): # checking the dst
-              if s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the frame len, data len
-                events.append(t)
+          if checking( t_item, s_item ):
+            events.append(t)
 
-        elif i < 0: # something didn't match up; i corresponds to above
-          # print(f"nope i : {i}")
-          continue
+        # elif i < 0: # something didn't match up; i corresponds to above
+        #   # print(f"nope i : {i}")
+        #   continue
   
   return events
 
