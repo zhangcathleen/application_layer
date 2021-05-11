@@ -185,12 +185,13 @@ def find( device, times, signatures ):
 # checking the signature of one item/step: [times] vs [possible]
 # t_item : t_sig[i] step in burst [times]
 # s_item : s_sig[i] step in signature [possible]
-# <num> : returns a number, if negative, something went wrong, positive good
-def checking( t_item, s_item):
+# <num> : returns a number, if negative, something went wrong, positive means signature checks out
+def checking( t_item, s_item, device):
   if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
     if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])): # checking the dst
       if s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the frame len, data len
-         return True # continue on to the next one
+        # print('true')
+        return True # continue on to the next one
       else:
         return -3
     else:
@@ -200,115 +201,170 @@ def checking( t_item, s_item):
     return -1
 
 
-# m_init -----------------------------------------------------------
+# # m_init -----------------------------------------------------------
 
-# initializing a blank matrix for levenshtein
-# t_len : len of the current burst [times]
-# s_len : len of [possible] signature
-# <l_matrix> : returns an initialized blank matrix
-#             columns are current burst [times]
-#             rows are signature [possible]
-#             [ [0, burst 1, 2....]
-#               [pos 1, 0, 0...]
-#               [pos 2, 0, 0...]
-#               [...]
-#             ]
-# bursts going across
-# possible going down
-def m_init( t_len, s_len ):
+# # initializing a blank matrix for levenshtein
+# # t_len : len of the current burst [times]
+# # s_len : len of [possible] signature
+# # <l_matrix> : returns an initialized blank matrix
+# #             columns are current burst [times]
+# #             rows are signature [possible]
+# #             [ [0, burst 1, 2....]
+# #               [pos 1, 0, 0...]
+# #               [pos 2, 0, 0...]
+# #               [...]
+# #             ]
+# # bursts going across
+# # possible going down
+# def m_init( t_len, s_len ):
 
-  l_matrix = list() # matrix is [possible] column and [times] rows
+#   l_matrix = list() # matrix is [possible] column and [times] rows
+
+#   i = 0
+#   # initializing the matrix
+#   while i < 1 + t_len:
+#     j = 0
+#     j_matrix = list()
+#     while j < 1 + s_len:
+
+#       if i == 0:
+#         j_matrix.append(j)
+
+#       elif j == 0:
+#         j_matrix.append(i)
+
+#       else:
+#         j_matrix.append(-1)
+      
+#       j = j + 1
+#     l_matrix.append(j_matrix)
+#     i = i + 1
+  
+#   # for l in l_matrix:
+#   #   print(l)
+#   # print(l_matrix)
+
+#   return l_matrix
+
+
+# # lev ----------------------------------------
+
+# # the levenshtein algorithm
+# # https://en.wikipedia.org/wiki/Levenshtein_distance
+# # r : the current row
+# # c : the current column
+# # l_m : what the current matrix is
+# # t_sig : bursts - going across
+# # s_sig : possible - going down
+# def lev( r, c, l_m, t_sig, s_sig ):
+#   # print(f'lev {r} {c}')
+  
+#   d = l_m[r][c-1] # left
+#   e = l_m[r-1][c] # above
+#   # print(f'lev left {i} above {j}')
+#   val = l_m[r][c]
+#   # print(f'lev : {val}')
+
+#   if val > -1:
+#     return val
+
+
+#   # if val == -1:
+#   #   exit("rip")
+  
+
+#   if min(d, e) == 0:
+    
+#     return max(d, e)
+  
+#   else:
+#     j = lev( r - 1, c, l_m, t_sig, s_sig) + 1
+#     # print(f'j : {j}')
+#     k = lev( r, c - 1, l_m, t_sig, s_sig) + 1
+#     # print(f'k : {k}')
+
+#     ab = 1 # if ai = bj, default False
+#     # print(f'tsig {len(t_sig)} r {r} : ssig {len(s_sig)} c {c}')
+#     if checking( t_sig[c-1], s_sig[r-1] ):
+#       ab = 0
+
+#     l = lev( r - 1, c - 1, l_m, t_sig, s_sig) + ab
+#     # print(f'l : {l}')
+    
+#     return min(j, k , l)
+
+# # l_fill ------------------------------------------------------
+
+# # implementing algorithm / fillouting matrix using levenshtein algo
+# # l_matrix : blank matrix that was created in m_init
+# def l_fill(l_matrix, t_sig, s_sig):
+
+#   # rows (going down) = possible
+#   r = 0
+  
+#   while r < len(l_matrix):
+#     l_row = l_matrix[r] # levenshtein row of the matrix
+#     # print(l_row)
+#     # columns (going across) = burst
+#     c = 0
+#     while c < len(l_row):
+
+#       # print(f'l_row : {l_row[c]}')
+
+#       # if empty, val = -1: so if val < 0, need to run the algo
+#       if l_row[c] < 0:
+#         # print(f'{l_row[c]} < zzero : row {r} col {c}')
+#         l_matrix[r][c] = lev(r, c, l_matrix, t_sig, s_sig)
+      
+
+#       c = c + 1
+    
+#     r = r + 1
+  
+#   for l in l_matrix:
+#     print(f"l_fill : {l}")
+#   # print(l_matrix)
+      
+
+
+# correlate -------------------------------------------------------------
+
+
+# device : the main device for this pcap
+# t_sig : signature at the time stamp
+# s_sig : the possible signature(s) but for now, just the one
+
+def correlate( t_sig, s_sig, device ):
+
+  # print(f"\n\nt {t_sig}")
+  # print(f"s {s_sig}")
+
+  extra = [] # in s_sig but not t_sig
+  # missing = [] # not in s_sig but in t_sig
 
   i = 0
-  # initializing the matrix
-  while i < 1 + t_len:
-    j = 0
-    j_matrix = list()
-    while j < 1 + s_len:
 
-      if i == 0:
-        j_matrix.append(j)
+  while i < len(s_sig):
+    if checking( t_sig[i], s_sig[i], device ): # if this is the same, then go to the next
+      pass
+    else: # if not, add t to extra, and check missing with current s
+      extra.append( t_sig[i] )
 
-      elif j == 0:
-        j_matrix.append(i)
+      if len(extra) > 1: # making sure it's longer than just what was added
+        e = 0
+        while e < len(extra) - 1: # don't go through the one that was just added
+          if checking( extra[e], s_sig[i], device ):
+            break
+          e = e + 1
+        extra.remove(e)
+  
 
-      else:
-        j_matrix.append(-1)
-      
-      j = j + 1
-    l_matrix.append(j_matrix)
     i = i + 1
-  
-  # for l in l_matrix:
-  #   print(l)
-  # print(l_matrix)
 
-  return l_matrix
-
-
-# lev ----------------------------------------
-
-# the levenshtein algorithm
-# https://en.wikipedia.org/wiki/Levenshtein_distance
-# r : the current row
-# c : the current column
-# m : what the current matrix is
-# t_sig : bursts - going across
-# s_sig : possible - going down
-def lev( r, c, m, t_sig, s_sig ):
-  # print(f'lev {r} {c}')
-
-  i = m[r][c-1] # left
-  j = m[r-1][c] # above
-  print(f'lev left {i} above {j}')
-
-  ab = 1 # if ai = bj, default False
-
-  if i == -1 and j == -1:
-    exit("rip")
-  
-
-  if min(i, j) == 0:
-    
-    return max(i, j)
-  
+  if len(extra)/len(s_sig) < (1/10):
+    return True
   else:
-    j = lev( i - 1, j, m, t_sig, s_sig) + 1
-    k = lev( i, j - 1, m, t_sig, s_sig) + 1
-    if checking( t_sig[c], s_sig[r] ):
-      ab = 0
-    l = lev( i - 1, j - 1, m, t_sig, s_sig) + ab
-    
-    return min(j, k , l)
-
-# l_fill ------------------------------------------------------
-
-# implementing algorithm / fillouting matrix using levenshtein algo
-# l_matrix : blank matrix that was created in m_init
-def l_fill(l_matrix, t_sig, s_sig):
-
-  # rows (going down) = possible
-  r = 0
-  
-  while r < len(l_matrix):
-    l_row = l_matrix[r] # levenshtein row of the matrix
-    # print(l_row)
-    # columns (going across) = burst
-    c = 0
-    while c < len(l_row):
-
-      # if empty, val = -1: so if val < 0, need to run the algo
-      if l_row[c] < 0:
-        print(f'{l_row[c]} < 0 : row {r} col {c}')
-        l_matrix[r][c] = lev(r, c, l_matrix, t_sig, s_sig)
-      
-
-      c = c + 1
-    
-    r = r + 1
-  
-  # print(l_matrix)
-      
+    return -1
 
 
 
@@ -354,7 +410,7 @@ def identify( device, times, possible ):
           t_item = t_sig[i]
           s_item = s_sig[i]
 
-          if not (c := checking( t_item, s_item ) ):
+          if not (c := checking( t_item, s_item, device ) ):
             i = c
             break
 
@@ -363,46 +419,63 @@ def identify( device, times, possible ):
         if i == s_end: # checking the last step + dealing w consequences of repeat
           if repeated: # already repeated - can add to the final [events]
             if t - t_time < 20 and t - t_time > 10:
-              if checking( t_item, s_item ):
+              if checking( t_item, s_item, device ):
                 events.append(t_time)
                 repeated = False
           
           else: # has not repeated yet - set repeated to True so next time it works
-            if checking( t_item, s_item ):
+            if checking( t_item, s_item, device ):
               repeated = True
         
         # elif i < 0: # something didn't match up; i corresponds to above
         #   # print(f"nope i : {i}")
         #   continue
 
-    # hardcoding for device 7 + implement levenshtein device
+    # hardcoding for device 7 + implement correlation (no : levenshtein device) 
     elif s_dev == 7:
       add = False
+      # for t in times:
+      #   print(times[t])
       for t in times: # levenshtein each t in the burst [times]
         t_sig = times[t] # current signature in [times]
         t_len = len(t_sig) # len of current burst [times]
-        s_len = len(s_sig) # len of [possible] signature
+        # s_len = len(s_sig) # len of [possible] signature
 
         # not the len = 2 of the device 7 signatures 10 seconds later
         if t_len > 2:
+
+          # print(t)
+          # print("s_sig")
+          # for s in s_sig:
+          #   print(s)
+
+          # print("t_sig")
+          # for t in t_sig:
+          #   print(t)
           
-          l_matrix = m_init( t_len, s_len )
-          l_fill(l_matrix, t_sig, s_sig)
-
-
-          add = True
+          # l_matrix = m_init( t_len, s_len )
+          # l_fill(l_matrix, t_sig, s_sig)
+          if correlate( t_sig, s_sig, device ):
+            add = True
 
           '''
           what to do:
           1 - initialize matrix [x]
           2 - keep track of what's deleted + what's added
           3 - implement the algo - recursion : make it in different
+
+
+          instead:
+          keep track of what's added and removed
+          and the percentage of what's wrong is done
+          
           '''
 
         
         else: # for the repeat one (2), to make sure that it checks out
           if add:
             # print('yay add')
+            events.append(t)
             add = False
 
     # for everything else (no repeat)
