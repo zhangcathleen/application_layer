@@ -77,12 +77,8 @@ def parse( path, signatures ):
     for pk in shark_cap:
       frame = pk.frame_info
       wpan = pk.wpan
-      print(frame.number)
       try:
         zbee = pk.zbee_nwk
-        # print(zbee)
-        # data = pk.data
-        # print(dir(zbee))
         
         # setting the id for the device
         if device is None:
@@ -90,49 +86,34 @@ def parse( path, signatures ):
             continue
           device = wpan.src16
           print(f'hello : {device}\n')
-        
 
         # checking if the zbee frame type is 0x0
         if zbee.frame_type == '0x00000000':
           ti = float(frame.time_epoch)
+          it = [zbee.src, zbee.dst, frame.len, zbee.data_len, ti]
 
-
-        if frame.number == "5":
-          print("here")
-          print(pk.zbee_aps)
-          print(dir(zbee))
-          print(wpan.src16)
-          print(wpan.dst16)
-          print(frame.len)
-          print(zbee.data)
-          print(ti)
-          exit()
-
-        it = [wpan.src16, wpan.dst16, frame.len, zbee.data_len, ti]
-        print(f" {frame.number} {it}")
-
-        # setting the time stamp to check for bursts at the beginning of the file
-        if time_stamp < 0:
-          time_stamp = ti
-          times[time_stamp] = [it]
-          prev_time = ti
-
-        # checking for the burst
-        else:
-
-          # if packets are within 2 seconds - should be same burst
-          if ti - prev_time < 2:
-            times[time_stamp].append(it)
-            prev_time = ti
-
-          # if packets aren't in 2 seconds - probably a different burst
-          elif ti - prev_time >= 2:
+          # setting the time stamp to check for bursts at the beginning of the file
+          if time_stamp < 0:
             time_stamp = ti
             times[time_stamp] = [it]
             prev_time = ti
 
+          # checking for the burst
           else:
-            continue
+
+            # if packets are within 2 seconds - should be same burst
+            if ti - prev_time < 2:
+              times[time_stamp].append(it)
+              prev_time = ti
+
+            # if packets aren't in 2 seconds - probably a different burst
+            elif ti - prev_time >= 2:
+              time_stamp = ti
+              times[time_stamp] = [it]
+              prev_time = ti
+
+        else:
+          continue
   
       except AttributeError:
         pass
@@ -154,33 +135,23 @@ def parse( path, signatures ):
 #             TODO : len(possible) > 1 : rerun algo until find all?
 def find( device, times, signatures ):
 
-  print(f"\n find_device {device}")
-  print(f"\n find_times {times}")
-  print(f"\n find_signature {signatures}")
-
   # tracks possible device numbers + which step [signatures]
   # [<index in list of signature[device]>, device numbers ...]
   possible = {}
-
 
   # checking [times] bursts with the [signatures] database/dictionary
   # adding the signatures [signatures] that match to possible
   # for t in times: # loops through the [times] bursts
   for dv in signatures: # loops through the [signatures] dictionary
-    print(f" dv {dv}")
 
     add = True # if all signatures + times match, keep signature?
-    t_sig = list(times.values())[0] # signatures recorded at [t] time of [times] burst
+    t_sig = list(times.values())[1] # signatures recorded at [t] time of [times] burst
     s_sig = signatures[dv] # signatures of [dv] device numbers [signatures]
 
-    print(f"t_sig {t_sig}")
-    print(f"s_sig {s_sig}")
-    
     if len(s_sig) != len(t_sig):
       add = False
-      print("not same len")
       continue
-    
+
 
     i = -1 # index for while loop below
 
@@ -191,13 +162,9 @@ def find( device, times, signatures ):
       t_item = t_sig[i] # t_item is the [src, dst, len, time] data of [times]
       s_item = s_sig[i] # s_item is the [src, dst, len, repeat] data of [signatures]
 
-      print(t_item)
-      print(s_item)
-
 
       if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
         if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])) and s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the dst, frame len, data len
-          print("here")
           continue
         else:
           add = False
@@ -209,7 +176,6 @@ def find( device, times, signatures ):
     
     if add:
       possible[dv] = s_sig
-      print("here") 
     
   return possible
 
@@ -233,6 +199,7 @@ def checking( t_item, s_item, device):
   else:
     # print(f'{i} : t {t_item} : s {s_item}')
     return -1
+
 
 # correlate -------------------------------------------------------------
 
@@ -283,14 +250,8 @@ def correlate( t_sig, s_sig, device ):
 # <events> : returns the event times based on signature [possible] + bursts [times]
 def identify( device, times, possible ):
 
-  print("identify")
-  print(f"\n device {device}")
-  print(f"\n times {times}")
-  print(f"\n possible {possible}")
-
   # times which events have happened
   events = []
-
 
   # outputting the times where the events happened
   # based on [times] bursts and correlated signatures [possible]
@@ -298,7 +259,7 @@ def identify( device, times, possible ):
     s_sig = list(possible.values())[0] # signature [possible]
     s_dev = list(possible.keys())[0] # device number [possible]
 
-    s_end = len(s_sig)# len of signatures [possible] : index wise
+    s_end = len(s_sig) - 1 # len of signatures [possible] : index wise
     # s_last = s_sig[s_end] # last step in signature of s_sig [possible]
 
     
@@ -312,26 +273,24 @@ def identify( device, times, possible ):
       # if s_last[len(s_last) - 1] > 0: # the signature repeats
 
       for t in times: # what was recorded from the previous loop
-        # print(t)
         t_sig = times[t] # current burst in [times]
-        print(f" t_sig {t_sig}")
-        print(f" s_sig {s_sig}")
         i = 0
 
         if not repeated: # sets the t_time if this hasn't been repeated yet
           t_time = t
         
         while i < s_end: # going through the first signature steps
-          print(f" {i} ")
+
           t_item = t_sig[i]
           s_item = s_sig[i]
 
-          print(f" t_item {t_item}")
 
           c = checking( t_item, s_item, device )
+          
           if not c:
             i = c
             break
+        
 
           i = i + 1
         
@@ -407,7 +366,7 @@ def identify( device, times, possible ):
 
           t_item = t_sig[i]
           s_item = s_sig[i]
-
+          
           c = checking( t_item, s_item, device )
           
           if not c:
@@ -417,7 +376,7 @@ def identify( device, times, possible ):
           i = i + 1
         
         if i == s_end: # checking the last step + adding the event time
-          if checking( t_item, s_item, device ):
+          if checking( t_item, s_item ):
             events.append(t)
 
         # elif i < 0: # something didn't match up; i corresponds to above
@@ -462,17 +421,12 @@ if __name__ == "__main__":
 
 
   p_var = parse( path, signatures )
-  device = p_var[0] # the device for this pcap file
   times = p_var[1] # times of bursts in pcap file
+  device = p_var[0] # the device for this pcap file
 
-  # print(f"\n times {times}")
-  # print(f"\n device {device}")
-
-  print(f"parsed")
+  print(times)
 
   possible = find( device, times, signatures )
-
-  print(f"find\n {possible}")
 
   events = identify(device, times, possible)
 
