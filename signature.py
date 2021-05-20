@@ -145,7 +145,7 @@ def find( device, times, signatures ):
   for dv in signatures: # loops through the [signatures] dictionary
 
     add = True # if all signatures + times match, keep signature?
-    t_sig = list(times.values())[1] # signatures recorded at [t] time of [times] burst
+    t_sig = list(times.values())[0] # signatures recorded at [t] time of [times] burst
     s_sig = signatures[dv] # signatures of [dv] device numbers [signatures]
 
     if len(s_sig) != len(t_sig):
@@ -204,11 +204,13 @@ def checking( t_item, s_item, device):
 # correlate -------------------------------------------------------------
 
 
+# for device # 7
 # device : the main device for this pcap
 # t_sig : signature at the time stamp
 # s_sig : the possible signature(s) but for now, just the one
 
 def correlate( t_sig, s_sig, device ):
+  print("correlate")
 
   # print(f"\n\nt {t_sig}")
   # print(f"s {s_sig}")
@@ -258,6 +260,8 @@ def identify( device, times, possible ):
   if len(possible) == 1: # can just output times, TODO: what if len of possible is longer than 1? probably go back and redo it?
     s_sig = list(possible.values())[0] # signature [possible]
     s_dev = list(possible.keys())[0] # device number [possible]
+
+    print(s_dev)
 
     s_end = len(s_sig) - 1 # len of signatures [possible] : index wise
     # s_last = s_sig[s_end] # last step in signature of s_sig [possible]
@@ -321,18 +325,7 @@ def identify( device, times, possible ):
 
         # not the len = 2 of the device 7 signatures 10 seconds later
         if t_len > 2:
-
-          # print(t)
-          # print("s_sig")
-          # for s in s_sig:
-          #   print(s)
-
-          # print("t_sig")
-          # for t in t_sig:
-          #   print(t)
-          
-          # l_matrix = m_init( t_len, s_len )
-          # l_fill(l_matrix, t_sig, s_sig)
+          print("before correlate")
           if correlate( t_sig, s_sig, device ):
             add = True
 
@@ -352,6 +345,7 @@ def identify( device, times, possible ):
         
         else: # for the repeat one (2), to make sure that it checks out
           if add:
+
             # print('yay add')
             events.append(t)
             add = False
@@ -424,7 +418,8 @@ if __name__ == "__main__":
   times = p_var[1] # times of bursts in pcap file
   device = p_var[0] # the device for this pcap file
 
-  print(times)
+  for t in times:
+    print(f" {t} : {times[t]}\n")
 
   possible = find( device, times, signatures )
 
