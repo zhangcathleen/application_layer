@@ -210,7 +210,6 @@ def checking( t_item, s_item, device):
 # s_sig : the possible signature(s) but for now, just the one
 
 def correlate( t_sig, s_sig, device ):
-  print("correlate")
 
   # print(f"\n\nt {t_sig}")
   # print(f"s {s_sig}")
@@ -261,7 +260,7 @@ def identify( device, times, possible ):
     s_sig = list(possible.values())[0] # signature [possible]
     s_dev = list(possible.keys())[0] # device number [possible]
 
-    print(s_dev)
+    # print(s_dev)
 
     s_end = len(s_sig) - 1 # len of signatures [possible] : index wise
     # s_last = s_sig[s_end] # last step in signature of s_sig [possible]
@@ -316,6 +315,8 @@ def identify( device, times, possible ):
     # hardcoding for device 7 + implement correlation (no : levenshtein device) 
     elif s_dev == 7:
       add = False
+      t_time = "" # checks the time of the last packet in the big burst
+                  # the 2 packets need to be sent 10 seconds after this time
       # for t in times:
       #   print(times[t])
       for t in times: # levenshtein each t in the burst [times]
@@ -325,9 +326,14 @@ def identify( device, times, possible ):
 
         # not the len = 2 of the device 7 signatures 10 seconds later
         if t_len > 2:
-          print("before correlate")
           if correlate( t_sig, s_sig, device ):
             add = True
+            t_len = len(t_sig) - 1
+            t_item = t_sig[t_len] # the last packet in the burst of packets
+            t_time = t_item[4] # the time sent for the last packet
+            # print(t_time)
+            # print(f" t_sig {t_sig}")
+            # print(f" {t_len} {t_sig[t_len]}")
 
           '''
           what to do:
@@ -345,10 +351,11 @@ def identify( device, times, possible ):
         
         else: # for the repeat one (2), to make sure that it checks out
           if add:
-
-            # print('yay add')
-            events.append(t)
-            add = False
+            if float(t) - float(t_time) < 10:
+              two_sig = [ [True, '0x00000000', '54', '17'], ['0x00000000', True, '45', '8']]
+              if correlate( t_sig, two_sig, device ):
+                events.append(t)
+                add = False
 
     # for everything else (no repeat)
     else:
