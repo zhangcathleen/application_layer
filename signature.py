@@ -215,6 +215,7 @@ def correlate( t_sig, s_sig, device ):
   # print(f"s {s_sig}")
 
   extra = [] # in s_sig but not t_sig
+  # but if the extra isn't in 
   # missing = [] # not in s_sig but in t_sig
 
   i = 0
@@ -377,13 +378,9 @@ def identify( device, times, possible ):
           i = i + 1
         
         if i == s_end: # checking the last step + adding the event time
-          if checking( t_item, s_item ):
+          if checking( t_item, s_item, device ):
             events.append(t)
 
-        # elif i < 0: # something didn't match up; i corresponds to above
-        #   # print(f"nope i : {i}")
-        #   continue
-  
   return events
 
 if __name__ == "__main__":
@@ -408,6 +405,12 @@ if __name__ == "__main__":
   #              -1 if it doesn't repeat
   signatures = {
     1 : [[True,'0x00000000','54','17'], ['0x00000000',True,'45','8'], ['0x00000000',True,'50','13'], [True,'0x00000000','45','8']],
+    2 : [[True,'0x00000000','52','15'], ['0x00000000', True, '52','13'], [True,'0x00000000','45','8']],
+    3 : [
+      [True, '0x0000fffd', '64', '19'], ['0x00000000', True, '59', '20'], [True, '0x0000fffd', '64', '19'], [True, '0x00000000', '55', '2'],
+      [True, '0x00000000', '45', '8'], [True, '0x00000000', '55', '2'], [True, '0x00000000', '52', '15'], ['0x00000000', True, '47', '8'],
+      [True, '0x0000fffd', '64', '19'], [True, '0x0000fffd', '64', '19'],  [True, '0x00000000', '55', '2'], [True, '0x00000000', '53', '16'],
+      ['0x00000000', True, '47', '8'], [True, '0x00000000', '55', '2'], [True, '0x00000000', '50', '13'], ['0x00000000', True, '59', '20']],
     5 : [[True,'0x00000000','54','17'], ['0x00000000',True,'45','8']],
     6 : [
       [True,'0x00000000','54','17'], [True,'0x00000000','53','16'], ['0x00000000',True,'45','8'], ['0x00000000',True,'45','8'], 
