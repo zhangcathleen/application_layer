@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 
-# need to install pyshark + tshark
 # pip install pyshark
 # sudo apt install tshark
 
@@ -201,82 +200,6 @@ def find( device, times, signatures ):
   return possible
 
 
-  # # checking [times] bursts with the [signatures] database/dictionary
-  # # adding the signatures [signatures] that match to possible
-  # # for t in times: # loops through the [times] bursts
-  # for dv in signatures: # loops through the [signatures] dictionary
-  #   print(dv)
-
-  #   add = False # if all signatures + times match, keep signature?
-  #   t_sig = list(times.values())[0] # signatures recorded at [t] time of [times] burst, get it from the first burst
-  #   # print(f"\nnew\n")
-  #   # print(list(times.values()))
-  #   # print(t_sig)
-  #   s_sig = signatures[dv] # signatures of [dv] device numbers [signatures]
-
-
-
-  #   # looping through the time bursts
-  #   # try to find one that matches the signature
-  #   # for t_item in t_sig:
-
-  #   i = 0
-  #   while i < len(t_sig):
-  #     print(i)
-
-
-  #     t_item = t_sig[i] # t_item is the [src, dst, len, time] data of [times]
-  #     s_item = s_sig[i] # s_item is the [src, dst, len, repeat] data of [signatures]
-
-  #     print(s_item)
-  #     print(t_item)
-
-  #     if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
-  #       if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])) and s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the dst, frame len, data le
-  #         add = True
-  #         break
-  #       else:
-  #         add = False
-  #     else:
-  #       add = False
-      
-  #     i = i + 1
-
-
-  #   if add:
-  #     possible[dv] = s_item
-    
-  # return possible
-
-
-    # if len(s_sig) != len(t_sig):
-    #   add = False
-    #   continue
-
-
-    # i = -1 # index for while loop below
-
-    # while i + 1 < len(s_sig): # correlates the indiv steps inside of the signatures
-
-    #   i = i + 1
-
-      # t_item = t_sig[i] # t_item is the [src, dst, len, time] data of [times]
-      # s_item = s_sig[i] # s_item is the [src, dst, len, repeat] data of [signatures]
-
-    #   if isinstance(s_item, bool):
-    #     break
-
-      # if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
-      #   if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])) and s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the dst, frame len, data le
-    #       continue
-    #     else:
-    #       add = False
-    #       break
-    #   else:
-    #     add = False
-    #     break
-      
-
 
 # checking ------------------------------------------------
 
@@ -284,19 +207,19 @@ def find( device, times, signatures ):
 # t_item : t_sig[i] step in burst [times]
 # s_item : s_sig[i] step in signature [possible]
 # <num> : returns a number, if negative, something went wrong, positive means signature checks out
-def checking( t_item, s_item, device):
-  if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
-    if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])): # checking the dst
-      if s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the frame len, data len
-        # print('true')
-        return True # continue on to the next one
-      else:
-        return -3
-    else:
-      return -2
-  else:
-    # print(f'{i} : t {t_item} : s {s_item}')
-    return -1
+# def checking( t_item, s_item, device):
+#   if (s_item[0] and device == t_item[0]) or (s_item[0] == t_item[0]): # checking the device id : src first
+#     if ((s_item[1] == t_item[1]) or (s_item[1] and device == t_item[1])): # checking the dst
+#       if s_item[2] == t_item[2] and s_item[3] == t_item[3]: # checking the frame len, data len
+#         # print('true')
+#         return True # continue on to the next one
+#       else:
+#         return -3
+#     else:
+#       return -2
+#   else:
+#     # print(f'{i} : t {t_item} : s {s_item}')
+#     return -1
 
 
 # # correlate -------------------------------------------------------------
@@ -398,50 +321,6 @@ def identify( device, times, possible, d_brand ):
 
     return events
     
-
-  # for t in times:
-  #   print(times[t])
-
-
-  # for p in possible:
-  #   sig = possible[p]
-
-    
-
-    # if sig[len(sig) - 1]:
-
-    #   repeated = False
-    #   r_time = ""
-    # print(times)
-    # for t in times: # each individual signature for the time bursts
-    #   t_sig = times[t]
-
-    #   i = 0
-    #   while i < len(t_sig): # signature inside of a time
-    #     # print(t_sig)
-    #     c = checking(t_sig[i], sig[0], device)
-    #     i = i + 1
-
-    #     if c:
-    #       events.append([t, d_brand, p])
-    #       break
-          # print(repeated)
-          # if not repeated:
-          #   repeated = True
-          #   r_time = t
-          #   # print(r_time)
-          #   break
-
-          # if repeated:
-          #   if (float(t) - float(r_time)) < 25 and (float(t) - float(r_time)) > 10:
-          #     events.append([r_time, d_brand, p])
-          #     repeated = False
-          #     break
-
-      
-    # elif sig[len(sig) - 1] is False:
-    #     events.append([r_time, d_brand, p])
-
   # # outputting the times where the events happened
   # # based on [times] bursts and correlated signatures [possible]
   # if len(possible) == 1: # can just output times, TODO: what if len of possible is longer than 1? probably go back and redo it?
